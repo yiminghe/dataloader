@@ -53,7 +53,7 @@ class DataLoader {
     }
 
     var batch = getCurrentBatch(this);
-    var cacheMap = this._cacheMap;
+    var cacheMap = this._cacheMap || batch.cacheMap;
 
     var cacheKey = this._cacheKeyFn(key); // If caching and there is a cache-hit, return cached Promise.
 
@@ -224,7 +224,9 @@ var enqueuePostPromiseJob =
           process.nextTick(fn);
         });
       }
-    : setImmediate || setTimeout; // Private: cached resolved Promise instance
+    : (typeof setImmediate === 'function' ?
+          setImmediate :
+          (fn => {setTimeout(fn, 0);})); // Private: cached resolved Promise instance
 
 var resolvedPromise; // Private: Describes a batch of requests
 
@@ -248,7 +250,8 @@ function getCurrentBatch(loader) {
   var newBatch = {
     hasDispatched: false,
     keys: [],
-    callbacks: []
+    callbacks: [],
+    cacheMap: new Map(),
   }; // Store it on the loader so it may be reused.
 
   loader._batch = newBatch; // Then schedule a task to dispatch this batch of requests.
